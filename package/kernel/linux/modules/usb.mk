@@ -461,7 +461,6 @@ $(eval $(call KernelPackage,usb-dwc2-pci))
 
 define KernelPackage/usb-cdns
   TITLE:=Cadence USB USB controller driver
-  DEPENDS:=+USB_GADGET_SUPPORT:kmod-usb-gadget +kmod-usb-roles
   KCONFIG:= \
 	CONFIG_USB_CDNS_SUPPORT
   FILES:= $(LINUX_DIR)/drivers/usb/cdns3/cdns-usb-common.ko

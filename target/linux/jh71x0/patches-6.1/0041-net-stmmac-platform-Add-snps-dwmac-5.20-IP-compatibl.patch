@@ -1,0 +1,34 @@
+From cb00f835fc9f3ece473e7081f17c8613bf08a8ef Mon Sep 17 00:00:00 2001
+From: Emil Renner Berthing <kernel@esmil.dk>
+Date: Sun, 7 Aug 2022 22:26:00 +0200
+Subject: [PATCH 041/122] net: stmmac: platform: Add snps,dwmac-5.20 IP
+ compatible string
+
+Add "snps,dwmac-5.20" compatible string for 5.20 version that can avoid
+to define some platform data in the glue layer.
+
+Tested-by: Tommaso Merciai <tomm.merciai@gmail.com>
+Signed-off-by: Emil Renner Berthing <kernel@esmil.dk>
+Signed-off-by: Paolo Abeni <pabeni@redhat.com>
+Signed-off-by: Samin Guo <samin.guo@starfivetech.com>
+---
+ drivers/net/ethernet/stmicro/stmmac/stmmac_platform.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/stmicro/stmmac/stmmac_platform.c b/drivers/net/ethernet/stmicro/stmmac/stmmac_platform.c
+index 0046a4ee6e64..807eca7edf53 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/stmmac_platform.c
++++ b/drivers/net/ethernet/stmicro/stmmac/stmmac_platform.c
+@@ -519,7 +519,8 @@ stmmac_probe_config_dt(struct platform_device *pdev, u8 *mac)
+ 	if (of_device_is_compatible(np, "snps,dwmac-4.00") ||
+ 	    of_device_is_compatible(np, "snps,dwmac-4.10a") ||
+ 	    of_device_is_compatible(np, "snps,dwmac-4.20a") ||
+-	    of_device_is_compatible(np, "snps,dwmac-5.10a")) {
++	    of_device_is_compatible(np, "snps,dwmac-5.10a") ||
++	    of_device_is_compatible(np, "snps,dwmac-5.20")) {
+ 		plat->has_gmac4 = 1;
+ 		plat->has_gmac = 0;
+ 		plat->pmt = 1;
+-- 
+2.20.1
+
