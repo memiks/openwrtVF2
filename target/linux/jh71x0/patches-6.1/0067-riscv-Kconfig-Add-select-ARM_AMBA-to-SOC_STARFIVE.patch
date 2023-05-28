@@ -1,0 +1,28 @@
+From e8d070e2eb856856055566d3515072a8346446f3 Mon Sep 17 00:00:00 2001
+From: "shanlong.li" <shanlong.li@starfivetech.com>
+Date: Wed, 31 May 2023 01:37:41 -0700
+Subject: [PATCH 067/122] riscv: Kconfig: Add select ARM_AMBA to SOC_STARFIVE
+
+Selects ARM_AMBA platform support for StarFive SoCs required by spi and
+crypto dma engine.
+
+Signed-off-by: shanlong.li <shanlong.li@starfivetech.com>
+---
+ arch/riscv/Kconfig.socs | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/riscv/Kconfig.socs b/arch/riscv/Kconfig.socs
+index 4a0a341ad363..40874955e175 100644
+--- a/arch/riscv/Kconfig.socs
++++ b/arch/riscv/Kconfig.socs
+@@ -28,6 +28,7 @@ config SOC_STARFIVE
+ 	select PINCTRL
+ 	select RESET_CONTROLLER
+ 	select SIFIVE_PLIC
++	select ARM_AMBA
+ 	help
+ 	  This enables support for StarFive SoC platform hardware.
+ 
+-- 
+2.20.1
+
