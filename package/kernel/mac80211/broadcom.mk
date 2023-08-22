@@ -435,6 +435,7 @@ define KernelPackage/brcmfmac/config
 		default y if TARGET_bcm27xx
 		default y if TARGET_imx_cortexa7
 		default y if TARGET_starfive
+		default y if TARGET_jh71x0
 		default y if TARGET_rockchip
 		default y if TARGET_sunxi
 		default n
