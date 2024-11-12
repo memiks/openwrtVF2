@@ -6,6 +6,7 @@
 ifneq ($(__target_inc),1)
 __target_inc=1
 
+
 # default device type
 DEVICE_TYPE?=router
 
@@ -21,27 +22,10 @@ DEFAULT_PACKAGES:=\
 	logd \
 	mtd \
 	netifd \
-	opkg \
 	uci \
 	uclient-fetch \
 	urandom-seed \
 	urngd
-
-ifneq ($(CONFIG_SELINUX),)
-DEFAULT_PACKAGES+=busybox-selinux procd-selinux
-else
-DEFAULT_PACKAGES+=busybox procd
-endif
-
-# include ujail on systems with enough storage
-ifeq ($(CONFIG_SMALL_FLASH),)
-DEFAULT_PACKAGES+=procd-ujail
-endif
-
-# include seccomp ld-preload hooks if kernel supports it
-ifneq ($(CONFIG_SECCOMP),)
-DEFAULT_PACKAGES+=procd-seccomp
-endif
 
 # For the basic set
 DEFAULT_PACKAGES.basic:=
@@ -91,6 +75,11 @@ else
   ifneq ($(SUBTARGET),)
     -include ./$(SUBTARGET)/target.mk
   endif
+endif
+
+# include ujail on systems with enough storage
+ifeq ($(filter small_flash,$(FEATURES)),)
+  DEFAULT_PACKAGES+=procd-ujail
 endif
 
 # Add device specific packages (here below to allow device type set from subtarget)
@@ -264,6 +253,11 @@ ifeq ($(DUMP),1)
     CPU_TYPE ?= riscv64
     CPU_CFLAGS_riscv64:=-mabi=lp64d -march=rv64imafdc
   endif
+  ifeq ($(ARCH),loongarch64)
+    CPU_TYPE ?= generic
+    CPU_CFLAGS := -O2 -pipe
+    CPU_CFLAGS_generic:=-march=loongarch64
+  endif
   ifneq ($(CPU_TYPE),)
     ifndef CPU_CFLAGS_$(CPU_TYPE)
       $(warning CPU_TYPE "$(CPU_TYPE)" doesn't correspond to a known type)
@@ -316,7 +310,15 @@ ifeq ($(DUMP),1)
     ifneq ($(CONFIG_CPU_MIPS32_R2),)
       FEATURES += mips16
     endif
-    FEATURES += $(foreach v,6 7,$(if $(CONFIG_CPU_V$(v)),arm_v$(v)))
+    ifneq ($(CONFIG_CPU_V6),)
+      FEATURES += arm_v6
+    endif
+    ifneq ($(CONFIG_CPU_V6K),)
+      FEATURES += arm_v6
+    endif
+    ifneq ($(CONFIG_CPU_V7),)
+      FEATURES += arm_v7
+    endif
 
     # remove duplicates
     FEATURES:=$(sort $(FEATURES))

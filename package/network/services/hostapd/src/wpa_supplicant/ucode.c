@@ -2,8 +2,10 @@
 #include "utils/common.h"
 #include "utils/ucode.h"
 #include "drivers/driver.h"
+#include "ap/hostapd.h"
 #include "wpa_supplicant_i.h"
 #include "wps_supplicant.h"
+#include "ctrl_iface.h"
 #include "bss.h"
 #include "ucode.h"
 
@@ -135,6 +137,7 @@ static uc_value_t *
 uc_wpas_add_iface(uc_vm_t *vm, size_t nargs)
 {
 	uc_value_t *info = uc_fn_arg(0);
+	uc_value_t *driver = ucv_object_get(info, "driver", NULL);
 	uc_value_t *ifname = ucv_object_get(info, "iface", NULL);
 	uc_value_t *bridge = ucv_object_get(info, "bridge", NULL);
 	uc_value_t *config = ucv_object_get(info, "config", NULL);
@@ -152,6 +155,22 @@ uc_wpas_add_iface(uc_vm_t *vm, size_t nargs)
 		.confname = ucv_string_get(config),
 		.ctrl_interface = ucv_string_get(ctrl),
 	};
+
+	if (driver) {
+		const char *drvname;
+		if (ucv_type(driver) != UC_STRING)
+			goto out;
+
+		iface.driver = NULL;
+		drvname = ucv_string_get(driver);
+		for (int i = 0; wpa_drivers[i]; i++) {
+			if (!strcmp(drvname, wpa_drivers[i]->name))
+				iface.driver = wpa_drivers[i]->name;
+		}
+
+		if (!iface.driver)
+			goto out;
+	}
 
 	if (!iface.ifname || !iface.confname)
 		goto out;
@@ -211,18 +230,53 @@ uc_wpas_iface_status(uc_vm_t *vm, size_t nargs)
 		ie = wpa_bss_get_ie(bss, WLAN_EID_HT_OPERATION);
 		if (ie && ie[1] >= 2) {
 			const struct ieee80211_ht_operation *ht_oper;
+			int sec;
 
 			ht_oper = (const void *) (ie + 2);
-			if (ht_oper->ht_param & HT_INFO_HT_PARAM_SECONDARY_CHNL_ABOVE)
+			sec = ht_oper->ht_param & HT_INFO_HT_PARAM_SECONDARY_CHNL_OFF_MASK;
+			if (sec == HT_INFO_HT_PARAM_SECONDARY_CHNL_ABOVE)
 				sec_chan = 1;
-			else if (ht_oper->ht_param &
-				 HT_INFO_HT_PARAM_SECONDARY_CHNL_BELOW)
+			else if (sec == HT_INFO_HT_PARAM_SECONDARY_CHNL_BELOW)
 				sec_chan = -1;
 		}
 
 		ucv_object_add(ret, "sec_chan_offset", ucv_int64_new(sec_chan));
 		ucv_object_add(ret, "frequency", ucv_int64_new(bss->freq));
 	}
+
+#ifdef CONFIG_MESH
+	if (wpa_s->ifmsh) {
+		struct hostapd_iface *ifmsh = wpa_s->ifmsh;
+
+		ucv_object_add(ret, "sec_chan_offset", ucv_int64_new(ifmsh->conf->secondary_channel));
+		ucv_object_add(ret, "frequency", ucv_int64_new(ifmsh->freq));
+	}
+#endif
+
+	return ret;
+}
+
+static uc_value_t *
+uc_wpas_iface_ctrl(uc_vm_t *vm, size_t nargs)
+{
+	struct wpa_supplicant *wpa_s = uc_fn_thisval("wpas.iface");
+	uc_value_t *arg = uc_fn_arg(0);
+	size_t reply_len;
+	uc_value_t *ret;
+	char *reply;
+
+	if (!wpa_s || ucv_type(arg) != UC_STRING)
+		return NULL;
+
+	reply = wpa_supplicant_ctrl_iface_process(wpa_s, ucv_string_get(arg), &reply_len);
+	if (reply_len < 0)
+		return NULL;
+
+	if (reply_len && reply[reply_len - 1] == '\n')
+		reply_len--;
+
+	ret = ucv_string_new_length(reply, reply_len);
+	free(reply);
 
 	return ret;
 }
@@ -234,9 +288,11 @@ int wpas_ucode_init(struct wpa_global *gl)
 		{ "getpid", uc_wpa_getpid },
 		{ "add_iface", uc_wpas_add_iface },
 		{ "remove_iface", uc_wpas_remove_iface },
+		{ "udebug_set", uc_wpa_udebug_set },
 	};
 	static const uc_function_list_t iface_fns[] = {
 		{ "status", uc_wpas_iface_status },
+		{ "ctrl", uc_wpas_iface_ctrl },
 	};
 	uc_value_t *data, *proto;
 
